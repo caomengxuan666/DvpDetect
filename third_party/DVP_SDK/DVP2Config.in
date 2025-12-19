@@ -1,0 +1,39 @@
+# 计算包含目录和库目录的绝对路径
+get_filename_component(DVP2_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(DVP2_INCLUDE_DIR "${DVP2_CMAKE_DIR}/../../../include")
+set(DVP2_LIB_DIR "${DVP2_CMAKE_DIR}/../../../lib")
+set(DVP2_BIN_DIR "${DVP2_CMAKE_DIR}/../../../bin")
+
+# 规范化路径
+get_filename_component(DVP2_INCLUDE_DIR "${DVP2_INCLUDE_DIR}" ABSOLUTE)
+get_filename_component(DVP2_LIB_DIR "${DVP2_LIB_DIR}" ABSOLUTE)
+get_filename_component(DVP2_BIN_DIR "${DVP2_BIN_DIR}" ABSOLUTE)
+
+# 创建导入库目标
+if(NOT TARGET DVPCamera)
+    add_library(DVPCamera SHARED IMPORTED GLOBAL)
+    set_property(TARGET DVPCamera PROPERTY IMPORTED_LOCATION "${DVP2_BIN_DIR}/x64/DVPCamera64.dll")
+    set_property(TARGET DVPCamera PROPERTY IMPORTED_IMPLIB "${DVP2_LIB_DIR}/x64/DVPCamera64.lib")
+    set_property(TARGET DVPCamera PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${DVP2_INCLUDE_DIR}")
+    set_property(TARGET DVPCamera PROPERTY LINKER_LANGUAGE CXX)
+endif()
+
+if(NOT TARGET dvpir)
+    add_library(dvpir SHARED IMPORTED GLOBAL)
+    set_property(TARGET dvpir PROPERTY IMPORTED_LOCATION "${DVP2_BIN_DIR}/x64/dvpir64.dll")
+    set_property(TARGET dvpir PROPERTY IMPORTED_IMPLIB "${DVP2_LIB_DIR}/x64/dvpir64.lib")
+    set_property(TARGET dvpir PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${DVP2_INCLUDE_DIR}")
+    set_property(TARGET dvpir PROPERTY INTERFACE_LINK_LIBRARIES DVPCamera)
+    set_property(TARGET dvpir PROPERTY LINKER_LANGUAGE CXX)
+endif()
+
+# 添加命名空间别名
+if(NOT TARGET DVP2::DVPCamera AND TARGET DVPCamera)
+    add_library(DVP2::DVPCamera ALIAS DVPCamera)
+endif()
+
+if(NOT TARGET DVP2::dvpir AND TARGET dvpir)
+    add_library(DVP2::dvpir ALIAS dvpir)
+endif()
+
+set(DVP2_SDK_FOUND TRUE)

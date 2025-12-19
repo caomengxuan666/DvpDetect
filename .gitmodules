@@ -1,0 +1,9 @@
+[submodule "third_party/concurrentqueue"]
+	path = third_party/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "third_party/BS_THREAD_POOL"]
+	path = third_party/BS_THREAD_POOL
+	url = https://github.com/bshoshany/thread-pool.git
+[submodule "third_party/AntDesign"]
+	path = third_party/AntDesign
+	url = https://github.com/byralpha/AntDesign
