@@ -8,7 +8,7 @@
 #   include(find_Qt_Dependency)
 #   find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
-# 强制添加你指定的Qt路径（优先级最高）
+# 强制添加指定的Qt路径（优先级最高）
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};D:/qt/6.10.1/msvc2022_64")
 set(Qt6_DIR "D:/qt/6.10.1/msvc2022_64/lib/cmake/Qt6" CACHE PATH "Qt6 config directory" FORCE)
 

@@ -1,24 +1,24 @@
 /*
  *  Copyright © 2025 [caomengxuan666]
- *  
+ *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the “Software”), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is furnished
- *  to do so, subject to the following conditions:
- *  
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *  
+ *  of this software and associated documentation files (the “Software”), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
  *  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
- *  
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
  *  - File: DvpCapture.hpp
  *  - CreationYear: 2025
  *  - Date: Sat Dec 20 2025
@@ -40,18 +40,21 @@
 class DvpCapture {
  public:
   explicit DvpCapture(dvpHandle handle);
-  ~DvpCapture();
+  virtual ~DvpCapture();
 
-  bool start(const FrameProcessor& processor);
-  void stop();
+  virtual bool start(const FrameProcessor& processor);
+  virtual void stop();
 
   // 动态配置（线程安全）
-  void set_config(const DvpConfig& cfg);
-  DvpConfig get_config() const;
+  virtual void set_config(const DvpConfig& cfg);
+  virtual DvpConfig get_config() const;
 
-  void register_event_handler(DvpEventType event, DvpEventHandler handler);
-  void add_frame_processor(const FrameProcessor& processor);
-  DvpEventManager* get_event_manager() const;
+  virtual void register_event_handler(DvpEventType event,
+                                      DvpEventHandler handler);
+  virtual void add_frame_processor(const FrameProcessor& processor);
+  virtual DvpEventManager* get_event_manager() const;
+
+  auto& get_frame_processor() const { return user_processor_; }
 
   // 获取图像队列的引用
   moodycamel::ConcurrentQueue<std::shared_ptr<CapturedFrame>>&
@@ -68,8 +71,8 @@ class DvpCapture {
 #endif
 
  private:
-  static int OnFrameCallback(dvpHandle, dvpStreamEvent, void*, dvpFrame*,
-                             void*);
+  static int OnFrameCallback([[maybe_unused]] dvpHandle, dvpStreamEvent, void*,
+                             dvpFrame*, void*);
   void process_frame(const dvpFrame& frame, const void* buffer);
   void update_camera_params();  // 应用配置到 SDK
 
@@ -85,6 +88,6 @@ class DvpCapture {
 #endif
 
   BS::thread_pool<> thread_pool_{std::thread::hardware_concurrency()};
-  FrameProcessor user_processor_;  // 用户自定义的帧处理器，可以是算法
+  FrameProcessor user_processor_;  // 用户自定义的帧处理器，目前最多只有一个
   std::unique_ptr<DvpEventManager> event_manager_;
 };

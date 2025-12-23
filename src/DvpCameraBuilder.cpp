@@ -1,31 +1,3 @@
-/* 
- *  Copyright © 2025 [caomengxuan666]
- *  
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the “Software”), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is furnished
- *  to do so, subject to the following conditions:
- *  
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *  
- *  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
- *  
- *  - File: DvpCameraBuilder.cpp
- *  - CreationYear: 2025
- *  - Date: Sat Dec 20 2025
- *  - Username: Administrator
- *  - CopyrightYear: 2025
- */
-
 /*
  *  Copyright © 2025 [caomengxuan666]
  *
@@ -48,7 +20,6 @@
  * IN THE SOFTWARE.
  *
  *  - File: DvpCameraBuilder.cpp
- *  - Path: d:\codespace\DvpDetect\src\DvpCameraBuilder.cpp
  *  - CreationYear: 2025
  *  - Date: Sat Dec 20 2025
  *  - Username: Administrator
@@ -836,12 +807,6 @@ std::unique_ptr<DvpCapture> DvpCameraBuilder::build() {
     capture->register_event_handler(event, handler);
   }
 
-  // 启动相机
-  status = dvpStart(handle);
-  if (status != DVP_STATUS_OK) {
-    std::cerr << "Failed to start camera\n";
-    return nullptr;
-  }
-
+  // 启动相机和算法,目前放到统一管理器中启动
   return capture;
 }

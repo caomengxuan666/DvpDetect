@@ -7,6 +7,9 @@ option(ENABLE_OPENCV "是否启用 OpenCV 功能（启用则查找，禁用则�
 # 缓存 OpenCV 路径（手动指定一次，后续无需重复查找）
 set(OpenCV_DIR "D:/vcpkg/installed/x64-windows/share/opencv4" CACHE PATH "OpenCV Config 目录（vcpkg 安装路径）")
 
+# 添加测试选项
+option(ENABLE_TESTS "是否启用测试" ON)
+
 # -------------------------------
 # 2. vcpkg 基础配置
 # -------------------------------
@@ -86,8 +89,14 @@ else()
 endif()
 
 set(OPENCV_INCLUDE_DIRS "D:/vcpkg/installed/x64-windows/include/opencv4")
-include_directories(${OpenCV_INCLUDE_DIRS})
-message(STATUS "OpenCV_INCLUDE_DIRS: "${OPENCV_INCLUDE_DIRS})
+include_directories(${OPENCV_INCLUDE_DIRS})
+message(STATUS "OpenCV_INCLUDE_DIRS: " ${OPENCV_INCLUDE_DIRS})
+
+# 启用测试
+if(ENABLE_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # -------------------------------
 # 5. 原有第三方库逻辑（保留）
@@ -104,3 +113,4 @@ target_include_directories(BS_thread_pool INTERFACE
 add_subdirectory(third_party/AntDesign)
 
 add_subdirectory(src)
+
