@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 #include "DvpConfig.hpp"
 
 class DvpCameraBuilder {
@@ -42,7 +42,7 @@ class DvpCameraBuilder {
 
  public:
   // 构造：通过 UserID 或 FriendlyName
-  // 不过最好来说是用这个camera_user_id,厂商建议的这个是
+  // 不过最好来说是用这个camera_user_id,厂商建议的.
   // 存在一个fallback机制：如果指定的ID或名称无法打开相机，则尝试使用枚举索引打开第一个可用相机
   static DvpCameraBuilder fromUserId(const std::string& id);
   static DvpCameraBuilder fromFriendlyName(const std::string& name);
@@ -138,7 +138,7 @@ class DvpCameraBuilder {
   DvpCameraBuilder& onEvent(DvpEventType event, const DvpEventHandler& handler);
 
   // === 构建并启动 ===
-  std::unique_ptr<DvpCapture> build();
+  std::unique_ptr<DvpCameraCapture> build();
 
  private:
   struct Config {

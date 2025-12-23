@@ -34,7 +34,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 #include "DvpConfig.hpp"
 
 class DvpCameraManager : public QObject {
@@ -45,10 +45,11 @@ class DvpCameraManager : public QObject {
   ~DvpCameraManager();
 
   // 相机管理
-  bool addCamera(const QString& cameraId, std::unique_ptr<DvpCapture> capture);
+  bool addCamera(const QString& cameraId,
+                 std::unique_ptr<DvpCameraCapture> capture);
   void removeCamera(const QString& cameraId);
   bool hasCamera(const QString& cameraId) const;
-  DvpCapture* getCamera(const QString& cameraId) const;
+  DvpCameraCapture* getCamera(const QString& cameraId) const;
   QStringList getAllCameraIds() const;
 
   // 相机配置管理
@@ -63,13 +64,14 @@ class DvpCameraManager : public QObject {
 
  private:
   struct CameraData {
-    std::unique_ptr<DvpCapture> capture;
+    std::unique_ptr<DvpCameraCapture> capture;
     DvpConfig config;
     QString configPath;
 
     // 添加默认构造函数以解决unique_ptr拷贝问题
     CameraData() = default;
-    CameraData(std::unique_ptr<DvpCapture> cap) : capture(std::move(cap)) {}
+    CameraData(std::unique_ptr<DvpCameraCapture> cap)
+        : capture(std::move(cap)) {}
   };
 
   std::unordered_map<QString, std::unique_ptr<CameraData>> m_cameras;

@@ -3,9 +3,11 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(DVPDETECT_SOURCE
     DvpCameraBuilder.cpp
-    DvpCapture.cpp
+    DvpCameraCapture.cpp
     DvpEventManager.cpp
     ImageSignalBus.cpp
+    cameras/CameraFactory.cpp
+    cameras/CameraManager.cpp
 )
 
 set(DVPALGO_SOURCE

@@ -34,7 +34,7 @@
 #include <QJsonObject>
 
 // 添加缺失的包含文件
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 #include "DvpConfig.hpp"
 #include "FrameProcessor.hpp"
 
@@ -43,8 +43,8 @@ DvpMultiCameraManager::DvpMultiCameraManager(QObject* parent)
 
 DvpMultiCameraManager::~DvpMultiCameraManager() {}
 
-bool DvpMultiCameraManager::addCamera(const QString& cameraId,
-                                      std::unique_ptr<DvpCapture> capture) {
+bool DvpMultiCameraManager::addCamera(
+    const QString& cameraId, std::unique_ptr<DvpCameraCapture> capture) {
   if (m_cameras.find(cameraId) != m_cameras.end()) {
     return false;  // 相机已存在
   }
@@ -63,7 +63,8 @@ bool DvpMultiCameraManager::hasCamera(const QString& cameraId) const {
   return m_cameras.find(cameraId) != m_cameras.end();
 }
 
-DvpCapture* DvpMultiCameraManager::getCamera(const QString& cameraId) const {
+DvpCameraCapture* DvpMultiCameraManager::getCamera(
+    const QString& cameraId) const {
   auto it = m_cameras.find(cameraId);
   if (it != m_cameras.end()) {
     return it->second->capture.get();

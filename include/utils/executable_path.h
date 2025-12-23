@@ -26,7 +26,6 @@
  *  - CopyrightYear: 2025
  */
 
-// src/core/executable_path.h
 #pragma once
 #include <string>
 

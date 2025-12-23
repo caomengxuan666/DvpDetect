@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 
 class DvpCameraManager {
  public:
@@ -55,7 +55,7 @@ class DvpCameraManager {
   }
 
   // 添加相机：接收 builder，立即构建并存储 shared_ptr
-  void add_camera(std::unique_ptr<DvpCapture> cam) {
+  void add_camera(std::unique_ptr<DvpCameraCapture> cam) {
     if (cam) {
       // 转为 shared_ptr 存储（因为需要共享给 GUI/算法）
       cameras_.emplace_back(std::move(cam));
@@ -69,7 +69,7 @@ class DvpCameraManager {
     }
   }
   // 获取相机（用于 GUI、算法等模块）
-  std::shared_ptr<DvpCapture> get_camera(size_t index) {
+  std::shared_ptr<DvpCameraCapture> get_camera(size_t index) {
     if (index < cameras_.size()) {
       return cameras_[index];
     }
@@ -96,5 +96,5 @@ class DvpCameraManager {
   }
 
  private:
-  std::vector<std::shared_ptr<DvpCapture>> cameras_;
+  std::vector<std::shared_ptr<DvpCameraCapture>> cameras_;
 };

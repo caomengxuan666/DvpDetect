@@ -36,7 +36,7 @@
 
 #include "DvpConfig.hpp"
 // Forward declarations
-class DvpCapture;
+class DvpCameraCapture;
 struct DvpConfig;  // 使用struct关键字并确保与实际定义一致
 class FrameProcessor;
 
@@ -58,7 +58,8 @@ class DvpMultiCameraManager : public QObject {
    * @param capture 相机捕获对象
    * @return 是否添加成功
    */
-  bool addCamera(const QString& cameraId, std::unique_ptr<DvpCapture> capture);
+  bool addCamera(const QString& cameraId,
+                 std::unique_ptr<DvpCameraCapture> capture);
 
   /**
    * @brief 从管理器中移除相机
@@ -78,7 +79,7 @@ class DvpMultiCameraManager : public QObject {
    * @param cameraId 相机唯一标识符
    * @return 相机对象指针，如果不存在则返回nullptr
    */
-  DvpCapture* getCamera(const QString& cameraId) const;
+  DvpCameraCapture* getCamera(const QString& cameraId) const;
 
   /**
    * @brief 获取所有相机ID列表
@@ -133,13 +134,13 @@ class DvpMultiCameraManager : public QObject {
  private:
   // 相机数据结构
   struct CameraData {
-    std::unique_ptr<DvpCapture> capture;  // 相机捕获对象
-    DvpConfig config;                     // 相机配置
-    QString configPath;                   // 配置文件路径
+    std::unique_ptr<DvpCameraCapture> capture;  // 相机捕获对象
+    DvpConfig config;                           // 相机配置
+    QString configPath;                         // 配置文件路径
 
     // 添加默认构造函数
     CameraData() = default;
-    explicit CameraData(std::unique_ptr<DvpCapture> cap)
+    explicit CameraData(std::unique_ptr<DvpCameraCapture> cap)
         : capture(std::move(cap)) {}
   };
 
