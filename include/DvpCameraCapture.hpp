@@ -43,9 +43,11 @@ class DvpCameraCapture : public CameraCapture {
   explicit DvpCameraCapture(dvpHandle handle);
   ~DvpCameraCapture() override;
 
+  bool start() override;
   bool start(const FrameProcessor& processor) override;
   void stop() override;
   void set_config(const CameraConfig& cfg) override;
+  void set_roi(int x, int y, int width, int height) override;
 
   // 动态配置（线程安全）
   virtual void set_config(const DvpConfig& cfg);

@@ -35,6 +35,8 @@
 
 #include "DvpCamera.h"
 
+struct FrameMetadata {};
+
 // 帧数据结构,无关于相机类型
 struct CapturedFrame {
   std::vector<uint8_t> data;  // 图像数据

@@ -28,6 +28,8 @@
 
 #include "DvpCameraCapture.hpp"
 
+#include <DVPCamera.h>
+
 #include <cstring>
 #include <memory>
 
@@ -62,6 +64,22 @@ bool DvpCameraCapture::start(const FrameProcessor& processor) {
   }
 
   user_processor_ = processor;
+  running_ = true;
+
+  dvpStatus status = dvpStart(handle_);
+  if (status != DVP_STATUS_OK) {
+    running_ = false;
+    return false;
+  }
+
+  return true;
+}
+
+bool DvpCameraCapture::start() {
+  if (!handle_) {
+    return false;
+  }
+
   running_ = true;
 
   dvpStatus status = dvpStart(handle_);
@@ -287,7 +305,7 @@ void DvpCameraCapture::update_camera_params() {
                   config_->flat_field_enable ? 1 : 0);
 }
 
-//TODO(cmx) 这个一定要重新写,只是因为现在还没确定好CameraConfig的通用范围。
+// TODO(cmx) 这个一定要重新写,只是因为现在还没确定好CameraConfig的通用范围。
 void DvpCameraCapture::set_config(const CameraConfig& cfg) {
   // 将通用的CameraConfig转换为DvpConfig
   DvpConfig dvpCfg;
@@ -374,4 +392,9 @@ void DvpCameraCapture::set_config(const CameraConfig& cfg) {
 
   // 使用转换后的DvpConfig设置相机
   set_config(dvpCfg);
+}
+
+void DvpCameraCapture::set_roi(int x, int y, int width, int height) {
+  dvpRegion roi{x, y, width, height, {}};
+  dvpSetRoi(handle_, roi);
 }

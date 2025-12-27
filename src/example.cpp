@@ -294,9 +294,9 @@ int main() {
   // === 1. 创建融合策略（外部传入）===
   auto fusion_strategy =
       [](const std::vector<CapturedFrame>& frames) -> CapturedFrame {
-    // TODO(cmx): 后期要根据具体情况实现图像的拼接、去重、对齐
-    // 这里A就可以不用写策略类接口，而是只需创建一个临时LAMBDA函数
-    // 示例：简单拼接（左右排列）
+    // TODO(cmx): 根据需求的变化，前端机只负责采集一个相机图像并且处理
+    // 所以说，我们需要做的仅仅就是通过改变一个相机的ROI,或者是丢弃多余的部分来达到(图像融合的操作)
+    // 每一台前端机是单独发给服务器的
     if (frames.size() != 2) {
       return {};
     }

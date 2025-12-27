@@ -7,3 +7,6 @@
 [submodule "third_party/AntDesign"]
 	path = third_party/AntDesign
 	url = https://github.com/byralpha/AntDesign
+[submodule "third_party/asio"]
+	path = third_party/asio
+	url = https://github.com/chriskohlhoff/asio.git
