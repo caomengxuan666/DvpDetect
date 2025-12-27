@@ -2,14 +2,14 @@
 #pragma once
 #include <memory>
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 #include "DvpConfig.hpp"
 #include "IDVPCamera.h"
 
-class TestDvpCamera : public DvpCapture {
+class TestDvpCamera : public DvpCameraCapture {
  public:
   explicit TestDvpCamera(std::shared_ptr<IDVPCamera> mock_camera)
-      : DvpCapture(0),  // 传递虚拟句柄
+      : DvpCameraCapture(0),  // 传递虚拟句柄
         mock_camera_(mock_camera) {
     // 初始化模拟相机
   }

@@ -26,15 +26,18 @@
  *  - CopyrightYear: 2025
  */
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
+
+#include <DVPCamera.h>
 
 #include <cstring>
 #include <memory>
 
 #include "FrameProcessor.hpp"
+#include "config/CameraConfig.hpp"
 #include "dvpParam.h"
 
-DvpCapture::DvpCapture(dvpHandle handle) : handle_(handle) {
+DvpCameraCapture::DvpCameraCapture(dvpHandle handle) : handle_(handle) {
   if (handle_) {
     // 初始化配置
     config_ = std::make_shared<DvpConfig>();
@@ -48,14 +51,14 @@ DvpCapture::DvpCapture(dvpHandle handle) : handle_(handle) {
   }
 }
 
-DvpCapture::~DvpCapture() {
+DvpCameraCapture::~DvpCameraCapture() {
   if (handle_) {
     stop();
     dvpClose(handle_);
   }
 }
 
-bool DvpCapture::start(const FrameProcessor& processor) {
+bool DvpCameraCapture::start(const FrameProcessor& processor) {
   if (!handle_) {
     return false;
   }
@@ -72,14 +75,30 @@ bool DvpCapture::start(const FrameProcessor& processor) {
   return true;
 }
 
-void DvpCapture::stop() {
+bool DvpCameraCapture::start() {
+  if (!handle_) {
+    return false;
+  }
+
+  running_ = true;
+
+  dvpStatus status = dvpStart(handle_);
+  if (status != DVP_STATUS_OK) {
+    running_ = false;
+    return false;
+  }
+
+  return true;
+}
+
+void DvpCameraCapture::stop() {
   if (running_) {
     running_ = false;
     dvpStop(handle_);
   }
 }
 
-void DvpCapture::set_config(const DvpConfig& cfg) {
+void DvpCameraCapture::set_config(const DvpConfig& cfg) {
   {
     std::unique_lock<std::shared_mutex> lock(config_mutex_);
     *config_ = cfg;
@@ -87,33 +106,34 @@ void DvpCapture::set_config(const DvpConfig& cfg) {
   update_camera_params();
 }
 
-DvpConfig DvpCapture::get_config() const {
+DvpConfig DvpCameraCapture::get_config() const {
   std::shared_lock<std::shared_mutex> lock(config_mutex_);
   return *config_;
 }
 
-void DvpCapture::register_event_handler(DvpEventType event,
-                                        DvpEventHandler handler) {
+void DvpCameraCapture::register_event_handler(DvpEventType event,
+                                              DvpEventHandler handler) {
   event_manager_->register_handler(event, handler);
 }
-void DvpCapture::add_frame_processor(const FrameProcessor& processor) {
+void DvpCameraCapture::add_frame_processor(const FrameProcessor& processor) {
   user_processor_ = processor;
 }
-DvpEventManager* DvpCapture::get_event_manager() const {
+DvpEventManager* DvpCameraCapture::get_event_manager() const {
   return event_manager_.get();
 }
 
-int DvpCapture::OnFrameCallback([[maybe_unused]] dvpHandle handle,
-                                dvpStreamEvent event, void* context,
-                                dvpFrame* frame, void* buffer) {
-  auto* capture = static_cast<DvpCapture*>(context);
+int DvpCameraCapture::OnFrameCallback([[maybe_unused]] dvpHandle handle,
+                                      dvpStreamEvent event, void* context,
+                                      dvpFrame* frame, void* buffer) {
+  auto* capture = static_cast<DvpCameraCapture*>(context);
   if (capture && capture->running_) {
     capture->process_frame(*frame, buffer);
   }
   return 0;
 }
 
-void DvpCapture::process_frame(const dvpFrame& frame, const void* buffer) {
+void DvpCameraCapture::process_frame(const dvpFrame& frame,
+                                     const void* buffer) {
   CapturedFrame captured_frame;
   captured_frame.meta = frame;
   captured_frame.data.assign(
@@ -132,7 +152,7 @@ void DvpCapture::process_frame(const dvpFrame& frame, const void* buffer) {
   frame_queue_.enqueue(captured);
 }
 
-void DvpCapture::update_camera_params() {
+void DvpCameraCapture::update_camera_params() {
   // 应用配置到相机
   std::shared_lock<std::shared_mutex> lock(config_mutex_);
 
@@ -283,4 +303,98 @@ void DvpCapture::update_camera_params() {
 
   dvpSetEnumValue(handle_, V_FLAT_FIELD_ENABLE_B,
                   config_->flat_field_enable ? 1 : 0);
+}
+
+// TODO(cmx) 这个一定要重新写,只是因为现在还没确定好CameraConfig的通用范围。
+void DvpCameraCapture::set_config(const CameraConfig& cfg) {
+  // 将通用的CameraConfig转换为DvpConfig
+  DvpConfig dvpCfg;
+
+  // 基本图像参数
+  dvpCfg.exposure_us = cfg.exposure_us;
+  dvpCfg.gain = cfg.gain;
+  dvpCfg.roi_x = cfg.roi_x;
+  dvpCfg.roi_y = cfg.roi_y;
+  dvpCfg.roi_w = cfg.roi_w;
+  dvpCfg.roi_h = cfg.roi_h;
+
+  // 模式设置
+  dvpCfg.trigger_mode = cfg.trigger_mode;
+  dvpCfg.hardware_isp = cfg.hardware_isp;
+
+  // 自动调节参数
+  dvpCfg.auto_exposure = cfg.auto_exposure;
+  dvpCfg.auto_gain = cfg.auto_gain;
+  dvpCfg.ae_target_brightness = cfg.ae_target_brightness;
+
+  // 抗频闪设置
+  dvpCfg.anti_flicker_mode = cfg.anti_flicker_mode;
+
+  // 采集模式
+  dvpCfg.acquisition_mode = cfg.acquisition_mode;
+
+  // 图像增强参数
+  dvpCfg.contrast = cfg.contrast;
+  dvpCfg.gamma = cfg.gamma;
+  dvpCfg.saturation = cfg.saturation;
+  dvpCfg.sharpness_enable = cfg.sharpness_enable;
+  dvpCfg.sharpness = cfg.sharpness;
+
+  // 图像处理参数
+  dvpCfg.inverse_state = cfg.inverse_state;
+  dvpCfg.flip_horizontal_state = cfg.flip_horizontal_state;
+  dvpCfg.flip_vertical_state = cfg.flip_vertical_state;
+  dvpCfg.rotate_state = cfg.rotate_state;
+  dvpCfg.rotate_opposite = cfg.rotate_opposite;
+  dvpCfg.black_level = cfg.black_level;
+  dvpCfg.color_temperature = cfg.color_temperature;
+  dvpCfg.flat_field_state = cfg.flat_field_state;
+  dvpCfg.defect_fix_state = cfg.defect_fix_state;
+
+  // 其他高级参数
+  dvpCfg.mono_state = cfg.mono_state;
+  dvpCfg.ae_roi_x = cfg.ae_roi_x;
+  dvpCfg.ae_roi_y = cfg.ae_roi_y;
+  dvpCfg.ae_roi_w = cfg.ae_roi_w;
+  dvpCfg.ae_roi_h = cfg.ae_roi_h;
+  dvpCfg.awb_roi_x = cfg.awb_roi_x;
+  dvpCfg.awb_roi_y = cfg.awb_roi_y;
+  dvpCfg.awb_roi_w = cfg.awb_roi_w;
+  dvpCfg.awb_roi_h = cfg.awb_roi_h;
+  dvpCfg.cooler_state = cfg.cooler_state;
+  dvpCfg.buffer_queue_size = cfg.buffer_queue_size;
+  dvpCfg.stream_flow_ctrl_sel = cfg.stream_flow_ctrl_sel;
+  dvpCfg.link_timeout = cfg.link_timeout;
+
+  // 白平衡相关参数
+  dvpCfg.awb_operation = cfg.awb_operation;
+
+  // 触发相关参数
+  dvpCfg.trigger_activation = cfg.trigger_activation;
+  dvpCfg.trigger_count = cfg.trigger_count;
+  dvpCfg.trigger_debouncer = cfg.trigger_debouncer;
+  dvpCfg.strobe_source = cfg.strobe_source;
+  dvpCfg.strobe_delay = cfg.strobe_delay;
+  dvpCfg.strobe_duration = cfg.strobe_duration;
+
+  // 线扫相机专用参数
+  dvpCfg.line_trig_enable = cfg.line_trig_enable;
+  dvpCfg.line_trig_source = cfg.line_trig_source;
+  dvpCfg.line_trig_filter = cfg.line_trig_filter;
+  dvpCfg.line_trig_edge_sel = cfg.line_trig_edge_sel;
+  dvpCfg.line_trig_delay = cfg.line_trig_delay;
+  dvpCfg.line_trig_debouncer = cfg.line_trig_debouncer;
+
+  // 其他高级参数
+  dvpCfg.acquisition_frame_rate = cfg.acquisition_frame_rate;
+  dvpCfg.acquisition_frame_rate_enable = cfg.acquisition_frame_rate_enable;
+  dvpCfg.flat_field_enable = cfg.flat_field_enable;
+
+  // 使用转换后的DvpConfig设置相机
+  set_config(dvpCfg);
+}
+
+void DvpCameraCapture::set_roi(int x, int y, int width, int height) {
+  dvpRegion roi{x, y, width, height, {}};
+  dvpSetRoi(handle_, roi);
 }

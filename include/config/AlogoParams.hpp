@@ -27,13 +27,22 @@
  */
 
 #pragma once
+#include <algorithm>
+#include <atomic>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
+
+// 先前向声明，兼容 ConfigObserver.hpp
+namespace config {
+struct GlobalConfig;
+struct HoleDetectionConfig;
+}  // namespace config
 
 #include "ConfigObserver.hpp"
 #include "utils/executable_path.h"
@@ -50,6 +59,7 @@ inline std::string get_config_file_path() {
   }();
   return config_file_path;
 }
+
 inline void set_config_file_path(const std::string &path) {
   g_config_file_path = path;
 }
@@ -104,12 +114,12 @@ struct HoleDetectionConfig {
       config.pixel_to_mm_width =
           hole_section["pixel_to_mm_width"].String().empty()
               ? 0.05586f
-              : std::stof(hole_section["pixel_to_mm_width"]);
+              : std::stof(hole_section["pixel_to_mm_width"].String());
 
       config.pixel_to_mm_height =
           hole_section["pixel_to_mm_height"].String().empty()
               ? 0.061f
-              : std::stof(hole_section["pixel_to_mm_height"]);
+              : std::stof(hole_section["pixel_to_mm_height"].String());
 
       config.partition_params =
           hole_section["partition_params"].String().empty()
@@ -118,12 +128,13 @@ struct HoleDetectionConfig {
 
       return config;
     } catch (const std::exception &e) {
-      std::cerr << "Exception: " << e.what() << "when loading params"
-                << std::endl;
+      std::cerr << "Exception: " << e.what()
+                << " when loading hole detection params" << std::endl;
       throw;
     } catch (...) {
-      std::cerr << "Unknown exception when loading params from ini"
-                << std::endl;
+      std::cerr
+          << "Unknown exception when loading hole detection params from ini"
+          << std::endl;
       throw;
     }
   }
@@ -148,26 +159,70 @@ struct HoleDetectionConfig {
 struct GlobalConfig {
   std::string title;
   HoleDetectionConfig hole_detection;
-  static GlobalConfig load() {
-    try {
-      inicpp::IniManager ini(get_config_file_path());
 
-      GlobalConfig config;
-      config.title = ini[""]["title"].String().empty()
-                         ? "DvpDetect"
-                         : ini[""]["title"].String();
-      config.hole_detection = HoleDetectionConfig::load(ini);
-      return config;
-    } catch (std::exception &e) {
-      throw;
-    }
-  }
+  static GlobalConfig load();
 
   static void saveDefaults(inicpp::IniManager &ini) {
     ini.set("", "title", "DvpDetect", "应用标题");
     HoleDetectionConfig::saveDefaults(ini);
   }
 };
+
+// 检查并创建默认配置（关键修改）
+inline void check_and_create_default_config() {
+  std::string config_path = get_default_config_path();
+  std::filesystem::path config_file(config_path);
+
+  // 1. 检查文件是否存在，存在则直接返回
+  if (std::filesystem::exists(config_file)) {
+    return;
+  }
+
+  // 2. 不存在则创建目录
+  std::filesystem::path config_dir = config_file.parent_path();
+  if (!std::filesystem::exists(config_dir)) {
+    try {
+      std::filesystem::create_directories(config_dir);
+      std::cout << "Created config directory: " << config_dir << std::endl;
+    } catch (const std::exception &e) {
+      std::cerr << "Failed to create config directory: " << e.what()
+                << std::endl;
+      throw;
+    }
+  }
+
+  try {
+    // 这里传入路径，IniManager内部会创建空文件，然后通过set写入默认配置
+    inicpp::IniManager ini(config_path);
+    GlobalConfig::saveDefaults(ini);  // set方法会直接写入文件
+    std::cout << "Config file not found, created default config: "
+              << config_path << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << "Failed to create default config file: " << e.what()
+              << std::endl;
+    throw;
+  }
+}
+
+inline GlobalConfig GlobalConfig::load() {
+  try {
+    // 加载前先检查并创建默认配置
+    check_and_create_default_config();
+
+    // 此时文件已存在，安全初始化IniManager
+    inicpp::IniManager ini(get_default_config_path());
+
+    GlobalConfig config;
+    config.title = ini[""]["title"].String().empty()
+                       ? "DvpDetect"
+                       : ini[""]["title"].String();
+    config.hole_detection = HoleDetectionConfig::load(ini);
+    return config;
+  } catch (std::exception &e) {
+    std::cerr << "Failed to load global config: " << e.what() << std::endl;
+    throw;
+  }
+}
 
 class ConfigLoader;
 
@@ -195,11 +250,11 @@ class ConfigLoader {
       std::filesystem::file_time_type last_write = {};
       while (monitoring_active.load()) {
         try {
-          auto path = std::filesystem::path(get_config_file_path());
+          auto path = std::filesystem::path(get_default_config_path());
           if (std::filesystem::exists(path)) {
             auto curr_time = std::filesystem::last_write_time(path);
             if (curr_time != last_write) {
-              std::cout << "Config file changed , Reloading..." << std::endl;
+              std::cout << "Config file changed, Reloading..." << std::endl;
               auto newConfig = loadFromStaticFile();
               if (newConfig) {
                 std::lock_guard<std::mutex> lock(g_config_mutex);

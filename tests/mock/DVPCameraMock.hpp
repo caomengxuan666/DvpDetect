@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "DVPCamera.h"
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 #include "DvpConfig.hpp"
 #include "IDVPCamera.h"
 
@@ -55,10 +55,10 @@ class DVPCameraMock : public IDVPCamera {
 };
 
 // 模拟DvpCapture
-class MockDvpCapture : public DvpCapture {
+class MockDvpCapture : public DvpCameraCapture {
  public:
   // 添加构造函数以解决默认构造函数被删除的问题
-  MockDvpCapture() : DvpCapture(0) {}  // 传递一个默认的dvpHandle值
+  MockDvpCapture() : DvpCameraCapture(0) {}  // 传递一个默认的dvpHandle值
 
   // 使用MOCK_METHOD宏定义模拟方法，不再使用override关键字
   MOCK_METHOD(void, set_config, (const DvpConfig& config), ());

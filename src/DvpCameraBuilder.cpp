@@ -480,7 +480,7 @@ DvpCameraBuilder& DvpCameraBuilder::onEvent(DvpEventType event,
 }
 
 // 构建方法
-std::unique_ptr<DvpCapture> DvpCameraBuilder::build() {
+std::unique_ptr<DvpCameraCapture> DvpCameraBuilder::build() {
   dvpHandle handle;
   dvpStatus status = DVP_STATUS_UNKNOW;
 
@@ -792,7 +792,7 @@ std::unique_ptr<DvpCapture> DvpCameraBuilder::build() {
   }
 
   // 创建捕获对象
-  auto capture = std::make_unique<DvpCapture>(handle);
+  auto capture = std::make_unique<DvpCameraCapture>(handle);
 
   // 将builder的内部配置文件转换成外部可读，并且传递给捕获对象
   capture->set_config(toDvpConfig());

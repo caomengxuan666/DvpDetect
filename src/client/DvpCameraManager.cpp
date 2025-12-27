@@ -33,14 +33,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include "DvpCapture.hpp"
+#include "DvpCameraCapture.hpp"
 
 DvpCameraManager::DvpCameraManager(QObject* parent) : QObject(parent) {}
 
 DvpCameraManager::~DvpCameraManager() {}
 
 bool DvpCameraManager::addCamera(const QString& cameraId,
-                                 std::unique_ptr<DvpCapture> capture) {
+                                 std::unique_ptr<DvpCameraCapture> capture) {
   if (m_cameras.find(cameraId) != m_cameras.end()) {
     return false;  // 相机已存在
   }
@@ -59,7 +59,7 @@ bool DvpCameraManager::hasCamera(const QString& cameraId) const {
   return m_cameras.find(cameraId) != m_cameras.end();
 }
 
-DvpCapture* DvpCameraManager::getCamera(const QString& cameraId) const {
+DvpCameraCapture* DvpCameraManager::getCamera(const QString& cameraId) const {
   auto it = m_cameras.find(cameraId);
   if (it != m_cameras.end()) {
     return it->second->capture.get();

@@ -19,22 +19,37 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  *
- *  - File: executable_path.h
+ *  - File: main.cpp
  *  - CreationYear: 2025
- *  - Date: Tue Dec 23 2025
+ *  - Date: Sat Dec 20 2025
  *  - Username: Administrator
  *  - CopyrightYear: 2025
  */
-
 #pragma once
-#include <string>
+#include <iostream>
 
-namespace DvpUtils {
+#include "DvpCameraBuilder.hpp"
+#include "algo/AlgoBase.hpp"
+#include "algo/HoleDetection.hpp"
+#include "config/ConfigManager.hpp"
 
-// get the full path of the currently running executable
-std::string getExecutablePath();
+int main() {
+  auto &config_manager = config::ConfigManager::instance();
+  config_manager.start();
+  auto initial_config = config_manager.get_current_config();
 
-// get the directory of the currently running executable
-std::string getExecutableDirectory();
+  auto holedetection = config_manager.create_algorithm<algo::HoleDetection>();
 
-}  // namespace DvpUtils
+  auto camera = DvpCameraBuilder::fromUserId("123")
+                    .bufferQueueSize(10)
+                    .linkTimeout(5000)
+                    .onFrame(algo::AlgoAdapter(holedetection))
+                    .build();
+
+  camera->start();
+  std::cout << "Running multi-camera system... Press Enter to exit.\n";
+  std::cin.get();
+  camera->stop();
+
+  return 0;
+}

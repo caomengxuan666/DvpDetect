@@ -28,24 +28,17 @@
 
 #include <iostream>
 #include <memory>
-#include <opencv2/opencv.hpp>
 #include <utility>
-#include <vector>
 
 #include "DvpCameraBuilder.hpp"
-#include "DvpCameraManager.hpp"
-#include "DvpEventManager.hpp"
 #include "FrameProcessor.hpp"
 #include "MultiCameraCoordinator.hpp"
-#include "algo/AlgoBase.hpp"
 #include "algo/HoleDetection.hpp"
+#include "cameras/CameraFactory.hpp"
+#include "cameras/CameraManager.hpp"
 #include "config/ConfigManager.hpp"
-// for cv2
-#include <opencv2/opencv.hpp>
 
-// // ── Simple DEMO ────────────────────────────────────────────────────────
-
-// /**/
+// ── Simple DEMO ────────────────────────────────────────────────────────
 // // We do not support use simple function as FrameProcessor directly,
 // // We had better use a Class with operator() to process frame.
 // void defect_processor(const CapturedFrame& frame) {
@@ -274,77 +267,92 @@
 //   return 0;
 // }
 
-//
-// ─────────────Using DvpCameraManager with multiple cameras─────────────
+// We do not support use simple function as FrameProcessor directly,
+// We had better use a Class with operator() to process frame.
+void defect_processor(const CapturedFrame& frame) {
+  // cv::Mat img(frame.height, frame.width, CV_8UC3, frame.data);
+  // auto defects = detect_holes(img);
+  // std::cout << "[ALGO] Processed frame with size: " << frame.size << "\n";
+}
 
 int main() {
   auto& config_manager = config::ConfigManager::instance();
   config_manager.start();
   auto initial_config = config_manager.get_current_config();
+  // we create some algorithms here bro.
+
+  // we automatically bind the observer with the up-to-date Algo' config.
+  // In this @create_algorithm function, we extract the config and then
+  // extract the config and then create the algorithm.
+  auto holeDetection = config_manager.create_algorithm<algo::HoleDetection>();
+  // some parameters configuration
+
+  // holeDetection->configure("threshold", "0.7");
+  // edgeDetection->configure("lowThreshold", "100");
+  // edgeDetection->configure("ratio", "2.5");
 
   // === 1. 创建融合策略（外部传入）===
   auto fusion_strategy =
       [](const std::vector<CapturedFrame>& frames) -> CapturedFrame {
-    // TODO(cmx): 后期要根据具体情况实现图像的拼接、去重、对齐
-    // 这里A就可以不用写策略类接口，而是只需创建一个临时LAMBDA函数
-    // 示例：简单拼接（左右排列）
+    // TODO(cmx): 根据需求的变化，前端机只负责采集一个相机图像并且处理
+    // 所以说，我们需要做的仅仅就是通过改变一个相机的ROI,或者是丢弃多余的部分来达到(图像融合的操作)
+    // 每一台前端机是单独发给服务器的
     if (frames.size() != 2) {
       return {};
     }
 
-    cv::Mat img0(frames[0].height(), frames[0].width(), CV_8UC1,
-                 (void*)frames[0].data.data());  // NOLINT
-    cv::Mat img1(frames[1].height(), frames[1].width(), CV_8UC1,
-                 (void*)frames[1].data.data());  // NOLINT
-
-    cv::Mat fused;
-    cv::hconcat(img0, img1, fused);  // OpenCV 拼接
-
-    CapturedFrame result;
-    result.data.assign(fused.data,
-                       fused.data + fused.total() * fused.elemSize());
-    result.meta = frames[0].meta;  // 继承元信息
-    // 可更新 width 等
-    return result;
+    // 实现图像融合逻辑
+    // 这里只是一个占位符实现
+    return frames[0];  // 返回第一帧作为示例
   };
-  // 设置融合后的处理（例如 HoleDetection）
-  auto holeDetection = std::make_shared<algo::HoleDetection>();
 
-  // === 2. 创建协同器 ===
-  // 直接栈对象，无需 shared_ptr,因为只要main不退出,coordinator对象就是有效的
+  // === 2. 创建协调器 - 使用2个相机 ===
   MultiCameraCoordinator coordinator(2, fusion_strategy);
 
-  // 将我们的算法传入融合器中作为预处理之后的下游处理器
-  coordinator.set_downstream_processor(
-      std::make_unique<algo::AlgoAdapter>(holeDetection));
+  // 设置下游处理器
+  auto algo_adapter = std::make_unique<algo::AlgoAdapter>(holeDetection);
+  coordinator.set_downstream_processor(std::move(algo_adapter));
 
-  // === 3. 构建相机，绑定协同器的处理器 ===
-  auto cam1 = DvpCameraBuilder::fromFriendlyName("cam1")
-                  .onFrame(coordinator[0])
-                  .triggerMode(true)
-                  .triggerSource(TRIGGER_SOURCE_SOFTWARE)
-                  .exposure(10000.0)
-                  .build();
+  // 创建通用相机管理器
+  CameraManager camera_manager;
 
-  auto cam2 = DvpCameraBuilder::fromFriendlyName("cam2")
-                  .onFrame(coordinator[1])
-                  .triggerMode(true)
-                  .triggerSource(TRIGGER_SOURCE_SOFTWARE)
-                  .exposure(10000.0)
-                  .build();
+  // 创建DVP相机
+  auto dvp_camera1 = DvpCameraBuilder::fromUserId("MyCamera01")
+                         .exposure(10000.0)
+                         .gain(1.5)
+                         .roi(0, 0, 1920, 1080)
+                         .build();
 
-  if (!cam1 || !cam2) {
-    std::cerr << "Failed to build cameras!\n";
+  auto dvp_camera2 = DvpCameraBuilder::fromUserId("MyCamera02")
+                         .exposure(10000.0)
+                         .gain(1.5)
+                         .roi(0, 0, 1920, 1080)
+                         .build();
+
+  if (!dvp_camera1 || !dvp_camera2) {
+    std::cerr << "Failed to create DVP camera!" << std::endl;
     return -1;
   }
 
-  // === 4. 启动 ===
-  DvpCameraManager manager{2};
-  manager.add_camera(std::move(cam1));
-  manager.add_camera(std::move(cam2));
-  manager.start_all();
+  // 添加相机到管理器
+  camera_manager.add_camera("dvp_camera_01", std::move(dvp_camera1));
+  camera_manager.add_camera("dvp_camera_02", std::move(dvp_camera2));
 
-  std::cout << "Running... Press Enter to exit.\n";
+  // === 3. 启动相机 ===
+  // 为每台相机分配对应的处理器
+  auto camera_ids = camera_manager.get_all_camera_ids();
+  for (size_t i = 0; i < camera_ids.size() && i < 2; ++i) {
+    auto processor = coordinator[i];
+    camera_manager.start_camera(camera_ids[i], processor);
+  }
+
+  std::cout << "Running multi-camera system... Press Enter to exit.\n";
   std::cin.get();
+
+  // 停止所有相机
+  for (const auto& id : camera_manager.get_all_camera_ids()) {
+    camera_manager.stop_camera(id);
+  }
+
   return 0;
 }

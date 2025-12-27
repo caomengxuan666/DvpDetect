@@ -35,10 +35,13 @@
 
 #include "DvpCamera.h"
 
-// 帧数据结构
+struct FrameMetadata {};
+
+// 帧数据结构,无关于相机类型
 struct CapturedFrame {
   std::vector<uint8_t> data;  // 图像数据
-  dvpFrame meta;              // 完整元信息（宽/高/格式/曝光等）
+  // TODO 未来需要用union来存储来自不同相机的元信息
+  dvpFrame meta;  // 完整元信息（宽/高/格式/曝光等）
 
   // 便捷访问
   int width() const { return meta.iWidth; }

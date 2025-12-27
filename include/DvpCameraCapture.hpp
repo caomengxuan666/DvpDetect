@@ -32,18 +32,22 @@
 #include <shared_mutex>
 
 #include "BS_thread_pool.hpp"
+#include "CameraCapture.hpp"
 #include "DvpConfig.hpp"
 #include "DvpEventManager.hpp"
 #include "FrameProcessor.hpp"
 #include "concurrentqueue.h"
 
-class DvpCapture {
+class DvpCameraCapture : public CameraCapture {
  public:
-  explicit DvpCapture(dvpHandle handle);
-  virtual ~DvpCapture();
+  explicit DvpCameraCapture(dvpHandle handle);
+  ~DvpCameraCapture() override;
 
-  virtual bool start(const FrameProcessor& processor);
-  virtual void stop();
+  bool start() override;
+  bool start(const FrameProcessor& processor) override;
+  void stop() override;
+  void set_config(const CameraConfig& cfg) override;
+  void set_roi(int x, int y, int width, int height) override;
 
   // 动态配置（线程安全）
   virtual void set_config(const DvpConfig& cfg);
@@ -57,8 +61,8 @@ class DvpCapture {
   auto& get_frame_processor() const { return user_processor_; }
 
   // 获取图像队列的引用
-  moodycamel::ConcurrentQueue<std::shared_ptr<CapturedFrame>>&
-  get_frame_queue() {
+  moodycamel::ConcurrentQueue<std::shared_ptr<CapturedFrame>>& get_frame_queue()
+      override {
     return frame_queue_;
   }
 
